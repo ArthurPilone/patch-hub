@@ -62,7 +62,7 @@ where
                             }
 
                             PatchFound::NotFound => {
-                                app.popup = Some(InfoPopUp::generate_info_popup("Error","The selected patchset couldn't be retrieved.\nPlease choose another patchset."));
+                                app.popup = Some(InfoPopUp::generate_info_popup("Error","Unable to retrieve patchset.\nPlease choose another patchset."));
 						        app.set_current_screen(CurrentScreen::LatestPatchsets);
                             }
                         }   
@@ -79,7 +79,7 @@ where
 pub fn generate_help_popup() -> Box<dyn PopUp> {
     let popup = HelpPopUpBuilder::new()
         .title("Latest Patchsets")
-        .description("This screen allows you to see a list of the latest patchsets from a mailing list.\nYou might also be able to view the details of a patchset.")
+        .description("This screen lists the patchsets sent to a mailing list, ordered from the most recent to the least.\nPress ENTER to check the details of a selected patchset.")
         .keybind("ESC", "Exit")
         .keybind("ENTER", "See details of the selected patchset")
         .keybind("?", "Show this help screen")
