@@ -9,7 +9,7 @@ use cover_renderer::render_cover;
 use logging::Logger;
 use patch_hub::lore::{
     lore_api_client::BlockingLoreAPIClient,
-    lore_session,
+    lore_session::{self, B4Result},
     patch::{Author, Patch},
 };
 use patch_renderer::{render_patch_preview, PatchRenderer};
@@ -23,8 +23,6 @@ use screens::{
     CurrentScreen,
 };
 use std::collections::{HashMap, HashSet};
-use std::ffi::OsStr;
-use std::path::Path;
 
 use crate::utils;
 
@@ -33,11 +31,6 @@ pub mod cover_renderer;
 pub mod logging;
 pub mod patch_renderer;
 pub mod screens;
-
-pub enum PatchFound {
-    Found,
-    NotFound
-} 
 
 /// Type that represents the overall state of the application. It can be viewed
 /// as the **Model** component of `patch-hub`.
@@ -139,7 +132,7 @@ impl App {
     /// Initializes field [App::details_actions], from currently selected
     /// patchset in [App::bookmarked_patchsets] or [App::latest_patchsets],
     /// depending on the value of [App::current_screen].
-    pub fn init_details_actions(&mut self) -> color_eyre::Result<PatchFound> {
+    pub fn init_details_actions(&mut self) -> color_eyre::Result<B4Result> {
         let representative_patch: Patch;
         let mut is_patchset_bookmarked = true;
         let mut reviewed_by = Vec::new();
@@ -167,21 +160,13 @@ impl App {
             screen => bail!(format!("Invalid screen passed as argument {screen:?}")),
         };
 
-        let patchset_path: String = match log_on_error!(lore_session::download_patchset(
-            self.config.patchsets_cache_dir(),
-            &representative_patch,
-        )) {
-            Ok(result) => {
-				let path = Path::new(OsStr::new(&result));
-
-				if ! path.exists() {
-					return Ok(PatchFound::NotFound);
-				}
-
-				result
-			} 
-            Err(io_error) => bail!("{io_error}"),
-        };
+        let patchset_path: String = match lore_session::download_patchset(
+                    self.config.patchsets_cache_dir(),
+                    &representative_patch,
+                ) {
+            lore_session::B4Result::PatchFound(path) => {path},
+            lore_session::B4Result::PatchNotFound(error) => {bail!("{error}")}
+        }; 
 
         match log_on_error!(lore_session::split_patchset(&patchset_path)) {
             Ok(raw_patches) => {
@@ -265,7 +250,7 @@ impl App {
                     lore_api_client: self.lore_api_client.clone(),
                     patchset_path,
                 });
-                Ok(PatchFound::Found)
+                Ok(B4Result::PatchFound("Patch found".to_string()))
             }
             Err(message) => bail!(message),
         }

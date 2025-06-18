@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use crate::{
-    app::{screens::CurrentScreen, App, PatchFound},
+    app::{screens::CurrentScreen, App},
     loading_screen,
     ui::popup::{help::HelpPopUpBuilder, info_popup::InfoPopUp, PopUp},
 };
@@ -10,6 +10,10 @@ use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
     prelude::Backend,
     Terminal,
+};
+
+use patch_hub::lore::{
+    lore_session::{B4Result},
 };
 
 pub fn handle_latest_patchsets<B>(
@@ -57,11 +61,11 @@ where
                     let result = app.init_details_actions();
                     if result.is_ok() {
                         match result.unwrap() {
-                            PatchFound::Found => {
+                            B4Result::PatchFound(_) => {
                                 app.set_current_screen(CurrentScreen::PatchsetDetails);
                             }
 
-                            PatchFound::NotFound => {
+                            B4Result::PatchNotFound(_) => {
                                 app.popup = Some(InfoPopUp::generate_info_popup("Error","The selected patchset couldn't be retrieved.\nPlease choose another patchset."));
 						        app.set_current_screen(CurrentScreen::LatestPatchsets);
                             }

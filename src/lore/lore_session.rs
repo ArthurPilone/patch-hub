@@ -18,6 +18,11 @@ use std::{
 };
 use thiserror::Error;
 
+pub enum B4Result {
+    PatchFound(String),
+    PatchNotFound(String),
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -152,32 +157,38 @@ impl LoreSession {
     }
 }
 
-pub fn download_patchset(output_dir: &str, patch: &Patch) -> io::Result<String> {
+pub fn download_patchset(output_dir: &str, patch: &Patch) -> B4Result {
     let message_id: &str = &patch.message_id().href;
     let mbox_name: String = extract_mbox_name_from_message_id(message_id);
 
     if !Path::new(output_dir).exists() {
-        fs::create_dir_all(output_dir)?;
+        match fs::create_dir_all(output_dir) {
+            Ok(_) => {},
+            Err(_) => {return B4Result::PatchNotFound("Couldn't create patches dir.".to_string())},
+        };
     }
 
     let filepath: String = format!("{output_dir}/{mbox_name}");
     if !Path::new(&filepath).exists() {
-        Command::new("b4")
-            .arg("--quiet")
-            .arg("am")
-            .arg("--use-version")
-            .arg(format!("{}", patch.version()))
-            .arg(message_id)
-            .arg("--outdir")
-            .arg(output_dir)
-            .arg("--mbox-name")
-            .arg(&mbox_name)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()?;
+        match Command::new("b4")
+                    .arg("--quiet")
+                    .arg("am")
+                    .arg("--use-version")
+                    .arg(format!("{}", patch.version()))
+                    .arg(message_id)
+                    .arg("--outdir")
+                    .arg(output_dir)
+                    .arg("--mbox-name")
+                    .arg(&mbox_name)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .status() {
+            Ok(_) => {},
+            Err(_) => {return B4Result::PatchNotFound("Couldn't create path file.".to_string())},
+        };
     }
 
-    Ok(filepath)
+    B4Result::PatchFound(filepath)
 }
 
 fn extract_mbox_name_from_message_id(message_id: &str) -> String {
